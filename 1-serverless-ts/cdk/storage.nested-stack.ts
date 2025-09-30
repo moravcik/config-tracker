@@ -5,9 +5,9 @@ import { DynamoEventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { ITopic } from 'aws-cdk-lib/aws-sns';
 import { Construct } from 'constructs';
-import { baseLambdaProps, resourcePrefix } from '.';
+import { baseLambdaProps, resourcePrefix } from './config-tracker.app';
 
-export class StorageStack extends NestedStack {
+export class StorageNestedStack extends NestedStack {
   public readonly configTable: Table;
 
   constructor(scope: Construct, id: string, props: NestedStackProps & { configChangesTopic: ITopic }) {

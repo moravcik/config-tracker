@@ -1,13 +1,13 @@
-import { Duration, NestedStack, NestedStackProps } from 'aws-cdk-lib';
+import { NestedStack, NestedStackProps } from 'aws-cdk-lib';
 import { SqsEventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { Topic } from 'aws-cdk-lib/aws-sns';
 import { SqsSubscription } from 'aws-cdk-lib/aws-sns-subscriptions';
 import { Queue } from 'aws-cdk-lib/aws-sqs';
 import { Construct } from 'constructs';
-import { baseLambdaProps, resourcePrefix } from '.';
+import { baseLambdaProps, resourcePrefix } from './config-tracker.app';
 
-export class NotificationsStack extends NestedStack {
+export class NotificationsNestedStack extends NestedStack {
   public readonly configChangesTopic: Topic;
 
   constructor(scope: Construct, id: string, props?: NestedStackProps) {

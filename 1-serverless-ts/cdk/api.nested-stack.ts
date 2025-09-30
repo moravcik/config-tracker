@@ -12,10 +12,10 @@ import { ITable } from 'aws-cdk-lib/aws-dynamodb';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { LogGroup } from 'aws-cdk-lib/aws-logs';
 import { Construct } from 'constructs';
-import { baseLambdaProps, resourcePrefix } from '.';
 import { configSchema } from '../lib/types/config.schema';
+import { baseLambdaProps, resourcePrefix } from './config-tracker.app';
 
-export class ApiStack extends NestedStack {
+export class ApiNestedStack extends NestedStack {
   constructor(scope: Construct, id: string, props: NestedStackProps & { configTable: ITable }) {
     super(scope, id, props);
 

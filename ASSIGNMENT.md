@@ -15,7 +15,7 @@ You’ve joined the Mid-Office team. You’re tasked with creating a configurati
 - Health check endpoint
 - Unit + integration tests
 - Clear README with rationale, assumptions, and how to run it
-- Add infrastructure as as code
+- Add infrastructure as a code
 
 #### Config example:
 ```json
