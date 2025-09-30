@@ -8,7 +8,7 @@ You’ve joined the Mid-Office team. You’re tasked with creating a configurati
 - REST API with at least:
   - Create new config change (add/update/delete)
   - List changes by time or type
- - Retrieve specific change by ID
+  - Retrieve specific change by ID
 - In-memory persistence (no DB required)
 - Input validation with clear error handling
 - One simulated external integration (notification or logging)
