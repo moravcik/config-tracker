@@ -8,10 +8,9 @@ export class ConfigTrackerStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
 
-    const { configChangesTopic } = new NotificationsNestedStack(this, 'Notifications');
-    const { configTable } = new StorageNestedStack(this, 'Storage', { configChangesTopic });
+    const { configTable, configChangesTopic } = new StorageNestedStack(this, 'Storage', {});
     new ApiNestedStack(this, 'Api', { configTable });
-
+    new NotificationsNestedStack(this, 'Notifications', { configChangesTopic });
   }
 
   // https://github.com/aws/aws-cdk/issues/19099

@@ -1,16 +1,17 @@
 import { NestedStack, NestedStackProps, RemovalPolicy } from 'aws-cdk-lib';
-import { AttributeType, BillingMode, ProjectionType, StreamViewType, Table } from 'aws-cdk-lib/aws-dynamodb';
+import { AttributeType, BillingMode, ITable, StreamViewType, Table } from 'aws-cdk-lib/aws-dynamodb';
 import { FilterCriteria, FilterRule, StartingPosition } from 'aws-cdk-lib/aws-lambda';
 import { DynamoEventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
-import { ITopic } from 'aws-cdk-lib/aws-sns';
+import { ITopic, Topic } from 'aws-cdk-lib/aws-sns';
 import { Construct } from 'constructs';
 import { baseLambdaProps, resourcePrefix } from './config-tracker.app';
 
 export class StorageNestedStack extends NestedStack {
-  public readonly configTable: Table;
+  public readonly configTable: ITable;
+  public readonly configChangesTopic: ITopic;
 
-  constructor(scope: Construct, id: string, props: NestedStackProps & { configChangesTopic: ITopic }) {
+  constructor(scope: Construct, id: string, props: NestedStackProps) {
     super(scope, id, props);
 
     this.configTable = new Table(this, 'ConfigTable', {
@@ -22,17 +23,21 @@ export class StorageNestedStack extends NestedStack {
       stream: StreamViewType.NEW_IMAGE,
     });
 
+    this.configChangesTopic = new Topic(this, 'ConfigChangesTopic', {
+      topicName: `${resourcePrefix}-config-changes-notification`,
+    });
+
     const configTableStreamHandler = new NodejsFunction(this, 'ConfigStreamHandler', {
       entry: 'lib/lambda/config-table-stream.handler.ts',
       environment: {
         CONFIG_TABLE_NAME: this.configTable.tableName,
-        CONFIG_CHANGES_TOPIC_ARN: props.configChangesTopic.topicArn,
+        CONFIG_CHANGES_TOPIC_ARN: this.configChangesTopic.topicArn,
       },
       ...baseLambdaProps,
     });
     this.configTable.grantReadWriteData(configTableStreamHandler);
     this.configTable.grantStreamRead(configTableStreamHandler);
-    props.configChangesTopic.grantPublish(configTableStreamHandler);
+    this.configChangesTopic.grantPublish(configTableStreamHandler);
 
     configTableStreamHandler.addEventSource(new DynamoEventSource(this.configTable, {
       startingPosition: StartingPosition.LATEST,
