@@ -2,6 +2,7 @@ package com.github.moravcik.configtracker.cdk;
 
 import org.jetbrains.annotations.NotNull;
 import software.amazon.awscdk.NestedStack;
+import software.amazon.awscdk.services.lambda.Alias;
 import software.amazon.awscdk.services.lambda.Function;
 import software.amazon.awscdk.services.lambda.eventsources.SqsEventSource;
 import software.amazon.awscdk.services.sns.ITopic;
@@ -28,11 +29,16 @@ public class NotificationsNestedStack extends NestedStack {
                 .build());
 
         Function configNotificationHandler = createLambdaFunctionBuilder(this, "ConfigNotificationHandler")
-                .environment(mergeEnvironment(
-                        BASE_LAMBDA_ENVIRONMENT,
-                        Map.of("SPRING_CLOUD_FUNCTION_DEFINITION", "configNotificationSqsHandler")))
+                .handler("com.github.moravcik.configtracker.lib.lambda.ConfigNotificationSqsHandler::handleRequest")
+                .environment(BASE_LAMBDA_ENVIRONMENT)
                 .build();
 
-        configNotificationHandler.addEventSource(SqsEventSource.Builder.create(notificationsQueue).build());
+        Alias configNotificationAlias = Alias.Builder.create(this, "ConfigNotificationAlias")
+                .aliasName("live")
+                .version(configNotificationHandler.getCurrentVersion())
+                .build();
+
+        notificationsQueue.grantConsumeMessages(configNotificationAlias);
+        configNotificationAlias.addEventSource(SqsEventSource.Builder.create(notificationsQueue).build());
     }
 }

@@ -5,13 +5,20 @@ import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 import software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional;
+import software.amazon.awssdk.http.urlconnection.UrlConnectionHttpClient;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
+import java.time.Duration;
 import java.util.List;
 
 public class DynamoUtils {
 
-    private static final DynamoDbClient dynamoDbClient = DynamoDbClient.create();
+    private static final DynamoDbClient dynamoDbClient = DynamoDbClient.builder()
+            .httpClient(UrlConnectionHttpClient.builder()
+                    .connectionTimeout(Duration.ofSeconds(2))
+                    .socketTimeout(Duration.ofSeconds(5))
+                    .build())
+            .build();
 
     private static final DynamoDbEnhancedClient enhancedClient = DynamoDbEnhancedClient.builder()
             .dynamoDbClient(dynamoDbClient)

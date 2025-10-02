@@ -1,5 +1,7 @@
 package com.github.moravcik.configtracker.lib.lambda;
 
+import com.amazonaws.services.lambda.runtime.Context;
+import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -8,7 +10,6 @@ import com.github.moravcik.configtracker.lib.model.ConfigPathChangeItem;
 import com.github.moravcik.configtracker.lib.utils.ApiUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
@@ -16,27 +17,30 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.*;
 
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
-@Component
-public class ConfigChangeApiHandler implements Function<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
+public class ConfigChangeApiHandler implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
 
     private static final Logger logger = LoggerFactory.getLogger(ConfigChangeApiHandler.class);
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private static final Set<String> ALLOWED_PARAMS = Set.of("type", "path", "timestampFrom", "timestampTo");
 
-    private final DynamoDbClient dynamoDbClient = DynamoDbClient.create();
-    private final DynamoDbEnhancedClient enhancedClient = DynamoDbEnhancedClient.builder()
+    private static final DynamoDbClient dynamoDbClient = DynamoDbClient.builder()
+            .httpClient(software.amazon.awssdk.http.urlconnection.UrlConnectionHttpClient.builder()
+                    .connectionTimeout(java.time.Duration.ofSeconds(2))
+                    .socketTimeout(java.time.Duration.ofSeconds(5))
+                    .build())
+            .build();
+    private static final DynamoDbEnhancedClient enhancedClient = DynamoDbEnhancedClient.builder()
             .dynamoDbClient(dynamoDbClient)
             .build();
-    private final DynamoDbTable<ConfigChangeItem> configChangeTable = enhancedClient.table(
+    private static final DynamoDbTable<ConfigChangeItem> configChangeTable = enhancedClient.table(
             System.getenv("CONFIG_TABLE_NAME"),
             TableSchema.fromBean(ConfigChangeItem.class)
     );
 
     @Override
-    public APIGatewayProxyResponseEvent apply(APIGatewayProxyRequestEvent event) {
+    public APIGatewayProxyResponseEvent handleRequest(APIGatewayProxyRequestEvent event, Context context) {
         try {
             String httpMethod = event.getHttpMethod().toUpperCase();
             String configId = event.getPathParameters() != null ? event.getPathParameters().get("configId") : null;

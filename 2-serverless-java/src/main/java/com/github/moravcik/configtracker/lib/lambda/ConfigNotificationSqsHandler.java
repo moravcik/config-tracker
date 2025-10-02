@@ -1,21 +1,19 @@
 package com.github.moravcik.configtracker.lib.lambda;
 
+import com.amazonaws.services.lambda.runtime.Context;
+import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.SQSEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
 
-import java.util.function.Function;
-
-@Component
-public class ConfigNotificationSqsHandler implements Function<SQSEvent, Void> {
+public class ConfigNotificationSqsHandler implements RequestHandler<SQSEvent, Void> {
 
     private static final Logger logger = LoggerFactory.getLogger(ConfigNotificationSqsHandler.class);
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
-    public Void apply(SQSEvent event) {
+    public Void handleRequest(SQSEvent event, Context context) {
         event.getRecords().forEach(record -> {
             try {
                 Object configChangeNotification = objectMapper.readValue(record.getBody(), Object.class);

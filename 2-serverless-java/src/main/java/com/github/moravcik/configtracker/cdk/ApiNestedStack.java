@@ -4,6 +4,7 @@ import org.jetbrains.annotations.NotNull;
 import software.amazon.awscdk.NestedStack;
 import software.amazon.awscdk.services.apigateway.*;
 import software.amazon.awscdk.services.dynamodb.ITable;
+import software.amazon.awscdk.services.lambda.Alias;
 import software.amazon.awscdk.services.lambda.Function;
 import software.amazon.awscdk.services.logs.LogGroup;
 import software.constructs.Construct;
@@ -19,28 +20,36 @@ public class ApiNestedStack extends NestedStack {
     public ApiNestedStack(@NotNull Construct scope, @NotNull String id, @NotNull ITable configTable) {
         super(scope, id);
 
-        // Lambda functions
+        // Lambda functions with versions and aliases
         Function configApiHandler = createLambdaFunctionBuilder(this, "ConfigApiHandler")
+                .handler("com.github.moravcik.configtracker.lib.lambda.ConfigApiHandler::handleRequest")
                 .environment(mergeEnvironment(
                         BASE_LAMBDA_ENVIRONMENT,
-                        Map.of(
-                                "SPRING_CLOUD_FUNCTION_DEFINITION", "configApiHandler",
-                                "CONFIG_TABLE_NAME", configTable.getTableName()))
-                        )
+                        Map.of("CONFIG_TABLE_NAME", configTable.getTableName())))
+                .build();
+
+        Alias configApiAlias = Alias.Builder.create(this, "ConfigApiAlias")
+                .aliasName("live")
+                .version(configApiHandler.getCurrentVersion())
                 .build();
 
         configTable.grantReadWriteData(configApiHandler);
+        configTable.grantReadWriteData(configApiAlias);
 
         Function configChangeApiHandler = createLambdaFunctionBuilder(this, "ConfigChangeApiHandler")
+                .handler("com.github.moravcik.configtracker.lib.lambda.ConfigChangeApiHandler::handleRequest")
                 .environment(mergeEnvironment(
                         BASE_LAMBDA_ENVIRONMENT,
-                        Map.of(
-                                "SPRING_CLOUD_FUNCTION_DEFINITION", "configChangeApiHandler",
-                                "CONFIG_TABLE_NAME", configTable.getTableName()))
-                        )
+                        Map.of("CONFIG_TABLE_NAME", configTable.getTableName())))
+                .build();
+
+        Alias configChangeApiAlias = Alias.Builder.create(this, "ConfigChangeApiAlias")
+                .aliasName("live")
+                .version(configChangeApiHandler.getCurrentVersion())
                 .build();
 
         configTable.grantReadData(configChangeApiHandler);
+        configTable.grantReadData(configChangeApiAlias);
 
         LogGroup apiLogGroup = LogGroup.Builder.create(this, "RestApiLogGroup")
                 .logGroupName("/aws/apigateway/" + resourcePrefix + "-config-api")
@@ -64,8 +73,8 @@ public class ApiNestedStack extends NestedStack {
                         .build())
                 .build();
 
-        LambdaIntegration configApiIntegration = new LambdaIntegration(configApiHandler);
-        LambdaIntegration configChangeApiIntegration = new LambdaIntegration(configChangeApiHandler);
+        LambdaIntegration configApiIntegration = new LambdaIntegration(configApiAlias);
+        LambdaIntegration configChangeApiIntegration = new LambdaIntegration(configChangeApiAlias);
 
         MethodOptions apiKeyRequiredOption = MethodOptions.builder().apiKeyRequired(true).build();
 

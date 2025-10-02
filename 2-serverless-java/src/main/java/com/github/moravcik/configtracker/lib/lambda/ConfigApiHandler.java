@@ -1,5 +1,7 @@
 package com.github.moravcik.configtracker.lib.lambda;
 
+import com.amazonaws.services.lambda.runtime.Context;
+import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -12,7 +14,6 @@ import com.github.moravcik.configtracker.lib.utils.ApiUtils;
 import com.github.moravcik.configtracker.lib.utils.DynamoUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.model.ScanEnhancedRequest;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
@@ -23,16 +24,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
-@Component
-public class ConfigApiHandler implements Function<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
+public class ConfigApiHandler implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
 
-    private final DynamoDbTable<ConfigItem> table = DynamoUtils.getConfigTable();
-
-    private static ObjectMapper objectMapper = new ObjectMapper();
-
+    private static final DynamoDbTable<ConfigItem> table = DynamoUtils.getConfigTable();
+    private static final ObjectMapper objectMapper = new ObjectMapper();
     private static final Logger logger = LoggerFactory.getLogger(ConfigApiHandler.class);
 
     private static String formatTimestamp(Instant instant) {
@@ -164,7 +161,7 @@ public class ConfigApiHandler implements Function<APIGatewayProxyRequestEvent, A
 
 
     @Override
-    public APIGatewayProxyResponseEvent apply(APIGatewayProxyRequestEvent event) {
+    public APIGatewayProxyResponseEvent handleRequest(APIGatewayProxyRequestEvent event, Context context) {
         try {
             String httpMethod = event.getHttpMethod().toUpperCase();
             String configId = event.getPathParameters() != null ? event.getPathParameters().get("configId") : null;

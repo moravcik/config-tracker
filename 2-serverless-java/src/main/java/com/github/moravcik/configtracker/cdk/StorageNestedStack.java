@@ -4,12 +4,13 @@ import org.jetbrains.annotations.NotNull;
 import software.amazon.awscdk.NestedStack;
 import software.amazon.awscdk.RemovalPolicy;
 import software.amazon.awscdk.services.dynamodb.*;
-import software.amazon.awscdk.services.lambda.*;
+import software.amazon.awscdk.services.lambda.Alias;
+import software.amazon.awscdk.services.lambda.Function;
+import software.amazon.awscdk.services.lambda.StartingPosition;
 import software.amazon.awscdk.services.lambda.eventsources.DynamoEventSource;
 import software.amazon.awscdk.services.sns.Topic;
 import software.constructs.Construct;
 
-import java.util.List;
 import java.util.Map;
 
 import static com.github.moravcik.configtracker.cdk.ConfigTrackerApp.resourcePrefix;
@@ -43,19 +44,26 @@ public class StorageNestedStack extends NestedStack {
                 .build();
 
         Function configTableStreamHandler = createLambdaFunctionBuilder(this, "ConfigStreamHandler")
+                .handler("com.github.moravcik.configtracker.lib.lambda.ConfigTableStreamHandler::handleRequest")
                 .environment(mergeEnvironment(
                         BASE_LAMBDA_ENVIRONMENT,
-                        Map.of(
-                                "SPRING_CLOUD_FUNCTION_DEFINITION", "configTableStreamHandler",
-                                "CONFIG_TABLE_NAME", configTable.getTableName(),
+                        Map.of("CONFIG_TABLE_NAME", configTable.getTableName(),
                                 "CONFIG_CHANGES_TOPIC_ARN", configChangesTopic.getTopicArn())))
+                .build();
+
+        Alias configStreamAlias = Alias.Builder.create(this, "ConfigStreamAlias")
+                .aliasName("live")
+                .version(configTableStreamHandler.getCurrentVersion())
                 .build();
 
         configTable.grantReadWriteData(configTableStreamHandler);
         configTable.grantStreamRead(configTableStreamHandler);
         configChangesTopic.grantPublish(configTableStreamHandler);
+        configTable.grantReadWriteData(configStreamAlias);
+        configTable.grantStreamRead(configStreamAlias);
+        configChangesTopic.grantPublish(configStreamAlias);
 
-        configTableStreamHandler.addEventSource(DynamoEventSource.Builder.create(configTable)
+        configStreamAlias.addEventSource(DynamoEventSource.Builder.create(configTable)
                 .startingPosition(StartingPosition.LATEST)
                 .batchSize(5)
                 .retryAttempts(2)

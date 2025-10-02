@@ -1,5 +1,7 @@
 package com.github.moravcik.configtracker.lib.lambda;
 
+import com.amazonaws.services.lambda.runtime.Context;
+import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.DynamodbEvent;
 import com.amazonaws.services.lambda.runtime.events.models.dynamodb.AttributeValue;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -12,7 +14,6 @@ import com.github.moravcik.configtracker.lib.utils.DynamoUtils;
 import com.github.moravcik.configtracker.lib.utils.ObjectUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 import software.amazon.awssdk.services.dynamodb.model.BatchWriteItemRequest;
 import software.amazon.awssdk.services.dynamodb.model.PutRequest;
@@ -23,20 +24,23 @@ import software.amazon.awssdk.services.sns.model.PublishRequest;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 
-@Component
-public class ConfigTableStreamHandler implements Function<DynamodbEvent, Void> {
+public class ConfigTableStreamHandler implements RequestHandler<DynamodbEvent, Void> {
 
     private static final Logger logger = LoggerFactory.getLogger(ConfigTableStreamHandler.class);
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
 
-    private final SnsClient snsClient = SnsClient.create();
-    private final String configChangesTopicArn = System.getenv("CONFIG_CHANGES_TOPIC_ARN");
+    private static final SnsClient snsClient = SnsClient.builder()
+            .httpClient(software.amazon.awssdk.http.urlconnection.UrlConnectionHttpClient.builder()
+                    .connectionTimeout(java.time.Duration.ofSeconds(2))
+                    .socketTimeout(java.time.Duration.ofSeconds(5))
+                    .build())
+            .build();
+    private static final String configChangesTopicArn = System.getenv("CONFIG_CHANGES_TOPIC_ARN");
 
     @Override
-    public Void apply(DynamodbEvent event) {
+    public Void handleRequest(DynamodbEvent event, Context context) {
         event.getRecords().forEach(this::processRecord);
         return null;
     }
