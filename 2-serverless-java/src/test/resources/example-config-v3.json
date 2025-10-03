@@ -1,0 +1,23 @@
+{
+  "approvalPolicy": {
+    "twoManRule": true,
+    "autoApproveThreshold": 2000,
+    "levels": [
+      { "role": "TEAM_LEAD", "limit": 10000 },
+      { "role": "HEAD_OF_CREDIT", "limit": 50000 }
+    ]
+  },
+  "riskScoring": {
+    "weights": {
+      "incomeToDebtRatio": 0.5,
+      "age": 0.15,
+      "historyLengthMonths": 0.2,
+      "delinquencyCount": 0.3
+    },
+    "thresholds2": {
+      "low2": 700,
+      "medium2": 650,
+      "high2": 600
+    }
+  }
+}

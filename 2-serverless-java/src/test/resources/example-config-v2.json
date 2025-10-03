@@ -1,0 +1,37 @@
+{
+  "creditPolicy": {
+    "maxCreditLimit": 50000,
+    "minCreditScore": 620,
+    "currency": "EUR",
+    "exceptions": [{
+      "segment": "VIP",
+      "maxCreditLimit": 150000,
+      "requiresTwoManRule": true
+    }, {
+      "segment": "BONUS",
+      "maxCreditLimit": 30000,
+      "requiresTwoManRule": false
+    }]
+  },
+  "approvalPolicy": {
+    "twoManRule": true,
+    "autoApproveThreshold": 2000,
+    "levels": [
+      { "role": "TEAM_LEAD", "limit": 10000 },
+      { "role": "HEAD_OF_CREDIT", "limit": 50000 },
+      { "role": "CTO", "limit": 150000 }
+    ]
+  },
+  "riskScoring": {
+    "weights": {
+      "incomeToDebtRatio": 0.4,
+      "historyLengthMonths": 0.2,
+      "delinquencyCount": 0.3
+    },
+    "thresholds": {
+      "low": 750,
+      "medium": 700,
+      "high": 650
+    }
+  }
+}
