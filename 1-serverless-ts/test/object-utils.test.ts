@@ -29,4 +29,4 @@ const example2 = {
 }
 
 console.log('---');
-console.log(calculateDifferences(example1, example2));
+console.log(JSON.stringify(calculateDifferences(example1, example2), null, 2));

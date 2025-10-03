@@ -119,7 +119,7 @@ So, not reinventing the wheel I decided to use a database, in this case the **Dy
 
 ### Config change
 
-There has been an ambiguity in the definition of what the configuration chane is.
+There has been an ambiguity in the definition of what the configuration change is.
 
 There are the domain-specific rules mentioned in the assignment and types of change: add/update/delete.
 In further Q/A communication it was clear that a config is a specific JSON object which can be changed on any level.
