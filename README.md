@@ -160,29 +160,28 @@ We can formalize this change with this data model:
 ```json
 [
   {
-    type: 'UPDATE',
-    path: 'maxCreditLimit',
-    oldValue: 50000,
-    newValue: 10000
+    "type": "UPDATE",
+    "path": "maxCreditLimit",
+    "oldValue": 50000,
+    "newValue": 10000
   },
   {
-    type: 'REMOVE',
-    path: 'minCreditScore',
-    oldValue: 620,
-    newValue: undefined
+    "type": "REMOVE",
+    "path": "minCreditScore",
+    "oldValue": 620
   },
   {
-    type: 'UPDATE',
-    path: 'exceptions[0]',
-    oldValue: {
-      segment: 'VIP',
-      maxCreditLimit: 150000,
-      requiresTwoManRule: true
+    "type": "UPDATE",
+    "path": "exceptions[0]",
+    "oldValue": {
+      "segment": "VIP",
+      "maxCreditLimit": 150000,
+      "requiresTwoManRule": true
     },
-    newValue: {
-      segment: 'BONUS',
-      maxCreditLimit: 30000,
-      requiresTwoManRule: false
+    "newValue": {
+      "segment": "BONUS",
+      "maxCreditLimit": 30000,
+      "requiresTwoManRule": false
     }
   }
 ]
