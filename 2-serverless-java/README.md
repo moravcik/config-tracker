@@ -61,4 +61,4 @@ export API_URL="your-api-gateway-url"
 curl "$API_URL/config" -H "x-api-key: $API_KEY"
 ```
 
-See parent README for additional information.
+See parent [README](../README.md) for additional information.
