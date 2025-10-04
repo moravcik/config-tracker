@@ -18,8 +18,16 @@ public class ConfigTrackerStack extends Stack {
         super(scope, id, props);
 
         StorageNestedStack storageStack = new StorageNestedStack(this, "Storage");
-        new ApiNestedStack(this, "Api", storageStack.getConfigTable());
+        ApiNestedStack apiStack = new ApiNestedStack(this, "Api", storageStack.getConfigTable());
         new NotificationsNestedStack(this, "Notifications", storageStack.getConfigChangesTopic());
+
+        // Outputs
+        software.amazon.awscdk.CfnOutput.Builder.create(this, "RestApiUrl")
+                .value(apiStack.getApiUrl())
+                .build();
+        software.amazon.awscdk.CfnOutput.Builder.create(this, "RestApiKeyCommand")
+                .value("aws apigateway get-api-key --api-key " + apiStack.getApiKeyId() + " --include-value  --query 'value' --output text")
+                .build();
     }
 
     @Override

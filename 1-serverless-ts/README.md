@@ -34,6 +34,18 @@ To continuously watch and deploy all changes to AWS use:
 cdk deploy --watch
 ```
 
+After successful deployment you will find output values of API Url and Get API Key command, similar to this:
+```bash
+Outputs:
+config-tracker-1-serverless-ts-stack.RestApiKeyCommand = aws apigateway get-api-key --api-key eyqd3ik2vd --include-value --query 'value' --output text
+config-tracker-1-serverless-ts-stack.RestApiUrl = https://0fs78p69e7.execute-api.eu-west-1.amazonaws.com/prod/
+```
+
+You can use the AWS command from above output to retrieve the API Key value:
+```bash
+aws apigateway get-api-key --api-key eyqd3ik2vd --include-value --query 'value' --output text
+```
+
 ## API Usage
 
 Import the [postman_collection.json](../postman_collection.json) from parent directory into [Postman](https://www.postman.com/) and test all API endpoints. 

@@ -29,6 +29,18 @@ After code change run:
 mvn package && cdk deploy
 ```
 
+After successful deployment you will find output values of API Url and Get API Key command, similar to this:
+```bash
+Outputs:
+config-tracker-2-serverless-java-stack.RestApiKeyCommand = aws apigateway get-api-key --api-key ch3v02lbsa --include-value  --query 'value' --output text
+config-tracker-2-serverless-java-stack.RestApiUrl = https://p7tfbik6a6.execute-api.eu-west-1.amazonaws.com/prod/
+```
+
+You can use the AWS command from above output to retrieve the API Key value:
+```bash
+aws apigateway get-api-key --api-key ch3v02lbsa --include-value  --query 'value' --output text
+```
+
 ## API Usage
 
 Import the [postman_collection.json](../postman_collection.json) from parent directory into [Postman](https://www.postman.com/) and test all API endpoints.

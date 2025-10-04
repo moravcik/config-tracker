@@ -17,6 +17,9 @@ import static com.github.moravcik.configtracker.cdk.LambdaUtils.*;
 
 public class ApiNestedStack extends NestedStack {
 
+    private final RestApi api;
+    private final IApiKey apiKey;
+
     public ApiNestedStack(@NotNull Construct scope, @NotNull String id, @NotNull ITable configTable) {
         super(scope, id);
 
@@ -55,7 +58,7 @@ public class ApiNestedStack extends NestedStack {
                 .logGroupName("/aws/apigateway/" + resourcePrefix + "-config-api")
                 .build();
 
-        RestApi api = RestApi.Builder.create(this, "RestApi")
+        this.api = RestApi.Builder.create(this, "RestApi")
                 .restApiName(resourcePrefix + "-config-api")
                 .description("Config Tracker API")
                 .apiKeySourceType(ApiKeySourceType.HEADER)
@@ -73,19 +76,111 @@ public class ApiNestedStack extends NestedStack {
                         .build())
                 .build();
 
+        // JSON Schema Model - inlined, as there is no option to import existing schema file in Java implementation
+        Model configModel = api.addModel("ConfigModel", ModelOptions.builder()
+                .contentType("application/json")
+                .modelName("Config")
+                .schema(JsonSchema.builder()
+                        .type(JsonSchemaType.OBJECT)
+                        .properties(Map.of(
+                                "creditPolicy", JsonSchema.builder()
+                                        .type(JsonSchemaType.OBJECT)
+                                        .properties(Map.of(
+                                                "maxCreditLimit", JsonSchema.builder().type(JsonSchemaType.NUMBER).build(),
+                                                "minCreditScore", JsonSchema.builder().type(JsonSchemaType.NUMBER).build(),
+                                                "currency", JsonSchema.builder().type(JsonSchemaType.STRING).enumValue(List.of("EUR", "USD", "GBP")).build(),
+                                                "exceptions", JsonSchema.builder()
+                                                        .type(JsonSchemaType.ARRAY)
+                                                        .items(JsonSchema.builder()
+                                                                .type(JsonSchemaType.OBJECT)
+                                                                .properties(Map.of(
+                                                                        "segment", JsonSchema.builder().type(JsonSchemaType.STRING).build(),
+                                                                        "maxCreditLimit", JsonSchema.builder().type(JsonSchemaType.NUMBER).build(),
+                                                                        "requiresTwoManRule", JsonSchema.builder().type(JsonSchemaType.BOOLEAN).build()
+                                                                ))
+                                                                .required(List.of("segment"))
+                                                                .additionalProperties(false)
+                                                                .build())
+                                                        .build()
+                                        ))
+                                        .required(List.of("maxCreditLimit", "minCreditScore", "currency"))
+                                        .additionalProperties(false)
+                                        .build(),
+                                "approvalPolicy", JsonSchema.builder()
+                                        .type(JsonSchemaType.OBJECT)
+                                        .properties(Map.of(
+                                                "twoManRule", JsonSchema.builder().type(JsonSchemaType.BOOLEAN).build(),
+                                                "autoApproveThreshold", JsonSchema.builder().type(JsonSchemaType.NUMBER).build(),
+                                                "levels", JsonSchema.builder()
+                                                        .type(JsonSchemaType.ARRAY)
+                                                        .items(JsonSchema.builder()
+                                                                .type(JsonSchemaType.OBJECT)
+                                                                .properties(Map.of(
+                                                                        "role", JsonSchema.builder().type(JsonSchemaType.STRING).enumValue(List.of("TEAM_LEAD", "HEAD_OF_CREDIT", "CFO")).build(),
+                                                                        "limit", JsonSchema.builder().type(JsonSchemaType.NUMBER).build()
+                                                                ))
+                                                                .required(List.of("role", "limit"))
+                                                                .additionalProperties(false)
+                                                                .build())
+                                                        .build()
+                                        ))
+                                        .required(List.of("twoManRule", "autoApproveThreshold", "levels"))
+                                        .additionalProperties(false)
+                                        .build(),
+                                "riskScoring", JsonSchema.builder()
+                                        .type(JsonSchemaType.OBJECT)
+                                        .properties(Map.of(
+                                                "weights", JsonSchema.builder()
+                                                        .type(JsonSchemaType.OBJECT)
+                                                        .properties(Map.of(
+                                                                "incomeToDebtRatio", JsonSchema.builder().type(JsonSchemaType.NUMBER).build(),
+                                                                "age", JsonSchema.builder().type(JsonSchemaType.NUMBER).build(),
+                                                                "historyLengthMonths", JsonSchema.builder().type(JsonSchemaType.NUMBER).build(),
+                                                                "delinquencyCount", JsonSchema.builder().type(JsonSchemaType.NUMBER).build()
+                                                        ))
+                                                        .required(List.of("incomeToDebtRatio", "historyLengthMonths", "delinquencyCount"))
+                                                        .additionalProperties(false)
+                                                        .build(),
+                                                "thresholds", JsonSchema.builder()
+                                                        .type(JsonSchemaType.OBJECT)
+                                                        .properties(Map.of(
+                                                                "low", JsonSchema.builder().type(JsonSchemaType.NUMBER).build(),
+                                                                "medium", JsonSchema.builder().type(JsonSchemaType.NUMBER).build(),
+                                                                "high", JsonSchema.builder().type(JsonSchemaType.NUMBER).build()
+                                                        ))
+                                                        .required(List.of("low", "medium", "high"))
+                                                        .additionalProperties(false)
+                                                        .build()
+                                        ))
+                                        .required(List.of("weights", "thresholds"))
+                                        .additionalProperties(false)
+                                        .build()
+                        ))
+                        .additionalProperties(false)
+                        .build())
+                .build());
+
         LambdaIntegration configApiIntegration = new LambdaIntegration(configApiAlias);
         LambdaIntegration configChangeApiIntegration = new LambdaIntegration(configChangeApiAlias);
 
         MethodOptions apiKeyRequiredOption = MethodOptions.builder().apiKeyRequired(true).build();
+        MethodOptions apiKeyWithValidationOption = MethodOptions.builder()
+                .apiKeyRequired(true)
+                .requestValidator(api.addRequestValidator("RequestValidator", RequestValidatorOptions.builder()
+                        .validateRequestBody(true)
+                        .validateRequestParameters(false)
+                        .build()))
+                .requestModels(Map.of("application/json", configModel))
+                .build();
 
         // Config API
         Resource configResource = api.getRoot().addResource("config");
         configResource.addMethod("GET", configApiIntegration, apiKeyRequiredOption);
-        configResource.addMethod("POST", configApiIntegration, apiKeyRequiredOption);
+        configResource.addMethod("POST", configApiIntegration, apiKeyWithValidationOption);
 
         Resource configIdResource = configResource.addResource("{configId}");
         configIdResource.addMethod("GET", configApiIntegration, apiKeyRequiredOption);
-        configIdResource.addMethod("PUT", configApiIntegration, apiKeyRequiredOption);
+        configIdResource.addMethod("PUT", configApiIntegration, apiKeyWithValidationOption);
         configIdResource.addMethod("PATCH", configApiIntegration, apiKeyRequiredOption);
 
         // Config Change API
@@ -93,7 +188,7 @@ public class ApiNestedStack extends NestedStack {
         configChangeResource.addMethod("GET", configChangeApiIntegration, apiKeyRequiredOption);
 
         // API Key and Usage Plan
-        IApiKey apiKey = api.addApiKey("ApiKey", ApiKeyOptions.builder().description("Config Tracker API Key").build());
+        this.apiKey = api.addApiKey("ApiKey", ApiKeyOptions.builder().description("Config Tracker API Key").build());
         UsagePlan apiUsagePlan = api.addUsagePlan("UsagePlan", UsagePlanProps.builder()
                 .name("Config API Usage Plan")
                 .throttle(ThrottleSettings.builder().rateLimit(100).burstLimit(200).build())
@@ -101,6 +196,14 @@ public class ApiNestedStack extends NestedStack {
                 .build());
         apiUsagePlan.addApiStage(UsagePlanPerApiStage.builder().stage(api.getDeploymentStage()).build());
         apiUsagePlan.addApiKey(apiKey);
+    }
+
+    public String getApiUrl() {
+        return api.getUrl();
+    }
+
+    public String getApiKeyId() {
+        return apiKey.getKeyId();
     }
 
 

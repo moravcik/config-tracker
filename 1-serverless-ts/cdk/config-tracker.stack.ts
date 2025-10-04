@@ -1,4 +1,5 @@
-import { CfnElement, Stack, StackProps } from 'aws-cdk-lib';
+import * as cdk from 'aws-cdk-lib';
+import { CfnElement, CfnOutput, Stack, StackProps } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import { ApiNestedStack } from './api.nested-stack';
 import { NotificationsNestedStack } from './notifications.nested-stack';
@@ -9,8 +10,12 @@ export class ConfigTrackerStack extends Stack {
     super(scope, id, props);
 
     const { configTable, configChangesTopic } = new StorageNestedStack(this, 'Storage', {});
-    new ApiNestedStack(this, 'Api', { configTable });
+    const { api, apiKey } = new ApiNestedStack(this, 'Api', { configTable });
     new NotificationsNestedStack(this, 'Notifications', { configChangesTopic });
+
+    // Outputs
+    new CfnOutput(this, 'RestApiUrl', { value: api.url });
+    new CfnOutput(this, 'RestApiKeyCommand', { value: `aws apigateway get-api-key --api-key ${apiKey.keyId} --include-value --query 'value' --output text` });
   }
 
   // https://github.com/aws/aws-cdk/issues/19099

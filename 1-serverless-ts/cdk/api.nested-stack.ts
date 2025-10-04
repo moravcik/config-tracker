@@ -2,8 +2,10 @@ import { NestedStack, NestedStackProps } from 'aws-cdk-lib';
 import {
   AccessLogFormat,
   ApiKeySourceType,
+  IApiKey,
   JsonSchema,
-  LambdaIntegration, LogGroupLogDestination,
+  LambdaIntegration,
+  LogGroupLogDestination,
   MethodLoggingLevel,
   Period,
   RestApi
@@ -16,6 +18,10 @@ import { configSchema } from '../lib/types/config.schema';
 import { baseLambdaProps, resourcePrefix } from './config-tracker.app';
 
 export class ApiNestedStack extends NestedStack {
+
+  public readonly api: RestApi;
+  public readonly apiKey: IApiKey;
+
   constructor(scope: Construct, id: string, props: NestedStackProps & { configTable: ITable }) {
     super(scope, id, props);
 
@@ -40,7 +46,7 @@ export class ApiNestedStack extends NestedStack {
     });
 
     // API Gateway with logging enabled
-    const api = new RestApi(this, 'RestApi', {
+    this.api = new RestApi(this, 'RestApi', {
       restApiName: `${resourcePrefix}-config-api`,
       description: 'Config Tracker API',
       apiKeySourceType: ApiKeySourceType.HEADER,
@@ -56,7 +62,7 @@ export class ApiNestedStack extends NestedStack {
       }
     });
 
-    const configModel = api.addModel('ConfigModel', {
+    const configModel = this.api.addModel('ConfigModel', {
       contentType: 'application/json',
       modelName: 'Config',
       schema: configSchema as any as JsonSchema,
@@ -68,7 +74,7 @@ export class ApiNestedStack extends NestedStack {
     const configChangeApiIntegration = new LambdaIntegration(configChangeApiHandler);
 
     // Config API
-    const configResource = api.root.addResource('config');
+    const configResource = this.api.root.addResource('config');
 
     // GET /config
     configResource.addMethod('GET', configApiIntegration, { apiKeyRequired });
@@ -102,13 +108,14 @@ export class ApiNestedStack extends NestedStack {
     configChangeResource.addMethod('GET', configChangeApiIntegration, { apiKeyRequired });
 
     // API Key and Usage Plan
-    const apiKey = api.addApiKey('ApiKey', { description: 'Config Tracker API Key' });
-    const apiUsagePlan = api.addUsagePlan('UsagePlan', {
+    this.apiKey = this.api.addApiKey('ApiKey', { description: 'Config Tracker API Key' });
+    const apiUsagePlan = this.api.addUsagePlan('UsagePlan', {
       name: 'Config API Usage Plan',
       throttle: { rateLimit: 100, burstLimit: 200 },
       quota: { limit: 10000, period: Period.DAY },
     });
-    apiUsagePlan.addApiStage({ stage: api.deploymentStage });
-    apiUsagePlan.addApiKey(apiKey);
+    apiUsagePlan.addApiStage({ stage: this.api.deploymentStage });
+    apiUsagePlan.addApiKey(this.apiKey);
+
   }
 }
