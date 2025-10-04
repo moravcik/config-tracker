@@ -5,7 +5,6 @@ import software.amazon.awscdk.CfnElement;
 import software.amazon.awscdk.StackProps;
 import software.constructs.Construct;
 import software.amazon.awscdk.Stack;
-import software.amazon.awscdk.NestedStackProps;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 

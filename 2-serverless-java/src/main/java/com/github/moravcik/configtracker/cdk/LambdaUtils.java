@@ -18,14 +18,10 @@ public class LambdaUtils {
         return Function.Builder.create(scope, logicalId)
                 .runtime(Runtime.JAVA_21)
                 .architecture(Architecture.ARM_64)
-                .snapStart(SnapStartConf.ON_PUBLISHED_VERSIONS)
                 .memorySize(2048)
                 .timeout(Duration.seconds(30))
                 .logRetention(software.amazon.awscdk.services.logs.RetentionDays.ONE_WEEK)
-                .code(Code.fromAsset("target/lambda.jar"))
-                .currentVersionOptions(VersionOptions.builder()
-                        .description("Auto-published version")
-                        .build());
+                .code(Code.fromAsset("target/lambda.jar"));
     }
 
     public static Map<String, String> mergeEnvironment(Map<String, String> base, Map<String, String> additional) {
